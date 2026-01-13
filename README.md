@@ -5,7 +5,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35%2B-FF4B4B)
 ![Spacy](https://img.shields.io/badge/NLP-Spacy-09A3D5)
 
-**TalentMatch** is an advanced, AI-powered resume screening and ranking system designed specifically for the nuances of **Computer Science and Engineering** recruitment. 
+**TalentMatch** is an advanced, **NLP-driven CV Scanner** and ranking system designed specifically for the nuances of **Computer Science and Engineering** recruitment. 
 
 Unlike generic keyword counters, TalentMatch uses a robust NLP pipeline to understand technical context, measure experience accurately, and allow recruiters to fine-tune ranking priorities based on the specific role (e.g., prioritizing "Skills" over "Education" for a Senior Dev role).
 
@@ -21,12 +21,12 @@ Unlike generic keyword counters, TalentMatch uses a robust NLP pipeline to under
 ### ⚖️ Weighted Ranking Engine
 - **Recruiter Control**: Interactive sliders (Ignore/Low/Medium/High/Critical) to adjust the weight of:
     - 🧠 **Skills Match**: Overlap with critical job keywords.
-    - � **Experience**: Total years of relevant professional history.
+    - 📅 **Experience**: Total years of relevant professional history.
     - 🎓 **Education**: Academic background relevance.
     - 📝 **Content Similarity**: Semantic text similarity score.
 - **Normalized Scoring**: A proprietary scoring algorithm ensures a balanced 0-100% match score regardless of weight configuration.
 
-### �️ Instant Resume Preview
+### 👁️ Instant Resume Preview
 - **Interactive Results**: Click on any candidate in the ranking table to instantly render their original PDF resume within the application.
 - **No Downloads Needed**: Screen candidates efficiently without cluttering your downloads folder.
 
@@ -41,8 +41,8 @@ Unlike generic keyword counters, TalentMatch uses a robust NLP pipeline to under
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/talentmatch.git
-   cd talentmatch
+   git clone https://github.com/AaravKashyap12/TalentMatch.git
+   cd TalentMatch
    ```
 
 2. **Install Dependencies**
@@ -65,26 +65,19 @@ Unlike generic keyword counters, TalentMatch uses a robust NLP pipeline to under
 
 - **`app.py`**: The main application entry point. Handles UI rendering, session state management, and interaction logic.
 - **`matcher.py`**: The core intelligence engine. Contains algorithms for TF-IDF similarity, skill extraction, experience calculation, and weighted scoring.
-- **`resume_parser.py`**: Utilities for extracting raw text from PDF files using `pdfminer.six`.
+- **`resume_parser.py`**: Utilities for extracting raw text from PDF files using `PyPDF2`.
 - **`nlp_utils.py`**: Text preprocessing pipelines (cleaning, lemmatization, stopword removal).
 - **`create_samples.py`**: A helper script to generate realistic dummy resumes for testing and demonstration purposes.
 
 ---
 
-## � How It Works
+## 👨‍💻 Author
 
-1. **Upload**: Drag and drop a batch of PDF resumes.
-2. **Define**: Paste the Job Description (JD).
-3. **Prioritize**: Use the sidebar to set what matters most for this role (e.g., set "Skills" to *Critical* and "Education" to *Low*).
-4. **Analyze**: Click "Analyze Candidates".
-5. **Review**: 
-   - See the ranked list in the dashboard.
-   - Click a candidate to preview their resume.
-   - Download the CSV report.
+**Aarav**  
+*Built with Python, Streamlit, and Passion for NLP.*
 
 ---
 
-## �️ License
+## 🛡️ License
 
 This project is open-source and available under the MIT License.
-
