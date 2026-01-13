@@ -7,4 +7,3 @@ plotly
 pandas
 numpy
 
-en-core-web-sm
