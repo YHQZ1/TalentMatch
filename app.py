@@ -1,8 +1,14 @@
 import spacy
+import streamlit as st
+from spacy.cli import download
 
 @st.cache_resource
 def load_nlp():
-    return spacy.load("en_core_web_sm")
+    try:
+        return spacy.load("en_core_web_sm")
+    except OSError:
+        download("en_core_web_sm")
+        return spacy.load("en_core_web_sm")
 
 nlp = load_nlp()
 import streamlit as st
