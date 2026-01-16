@@ -274,83 +274,126 @@ def calculate_component_scores(job_desc, resumes_texts, job_desc_raw, resumes_ra
     return results
 
 def calculate_ats_score(resume_text, job_keywords=None):
-    """Estimate an ATS compatibility score (0-100) for a resume.
-
-    Components:
-    - keyword_score (50%): fraction of job keywords found in resume skills
-    - section_score (20%): presence of standard sections (Experience, Education, Skills, Contact)
-    - parseability_score (20%): based on length of extracted text (proxy for successful OCR/parsing)
-    - experience_score (10%): presence of years of experience and magnitude
-    - formatting_penalty (subtract up to 10 points): short resumes or likely images-only PDFs
-
-    Returns:
-        float: ATS score between 0 and 100 (clipped)
     """
+    ATS-style resume score (0–100)
+    Compatible with existing TalentMatch pipeline.
+    """
+
     if not resume_text or not isinstance(resume_text, str):
         return 0.0
 
     text = resume_text.lower()
     words = text.split()
-
-    # Keyword score
-    if job_keywords:
-        try:
-            jd_kw = set(k.lower() for k in job_keywords)
-        except Exception:
-            jd_kw = set()
-    else:
-        jd_kw = set()
-
-    resume_skills = set(s.lower() for s in extract_skills(resume_text))
-    if jd_kw:
-        common = jd_kw.intersection(resume_skills)
-        keyword_score = len(common) / max(1, len(jd_kw))
-    else:
-        # No job keywords provided -> fallback to fraction of recognized skills found (capped)
-        keyword_score = min(1.0, len(resume_skills) / 6.0)
-
-    # Section score
-    sections = ['experience', 'education', 'skills', 'contact', 'projects']
-    present = sum(1 for sec in sections if sec in text)
-    section_score = present / len(sections)
-
-    # Parseability score (proxy: word count)
     wc = len(words)
-    parseability_score = min(1.0, wc / 400.0)  # 400+ words is considered fully parseable
 
-    # Experience score: scaled from extracted experience years
+    # -------------------------------------------------
+    # 1️⃣ Keyword / Skill Match (40%)
+    # -------------------------------------------------
+    resume_skills = set(s.lower() for s in extract_skills(resume_text))
+
+    if job_keywords:
+        jd_skills = set(k.lower() for k in job_keywords)
+        matched = resume_skills.intersection(jd_skills)
+        keyword_score = len(matched) / max(1, len(jd_skills))
+    else:
+        keyword_score = min(1.0, len(resume_skills) / 8.0)
+
+    keyword_score = min(1.0, keyword_score)
+
+    # -------------------------------------------------
+    # 2️⃣ Skill Placement Confidence (15%)
+    # -------------------------------------------------
+    placement_score = 0.0
+
+    if "skills" in text:
+        placement_score += 0.5
+    if "experience" in text or "work experience" in text:
+        placement_score += 0.3
+    if len(resume_skills) >= 5:
+        placement_score += 0.2
+
+    placement_score = min(1.0, placement_score)
+
+    # -------------------------------------------------
+    # 3️⃣ Experience Realism (15%)
+    # -------------------------------------------------
     exp_list = extract_experience(resume_text)
+
     max_years = 0.0
     for e in exp_list:
-        # clean digits from match like '5+' or '5-7' or 'five'
         m = re.search(r"(\d+(?:\.\d+)?)", e)
         if m:
             try:
-                v = float(m.group(1))
-                if v > max_years:
-                    max_years = v
-            except Exception:
-                continue
-    experience_score = min(1.0, max_years / 10.0)  # 10+ years -> full score
+                val = float(m.group(1))
+                if val > max_years:
+                    max_years = val
+            except:
+                pass
 
-    # Formatting penalty: short text or few lines -> penalize
+    if max_years == 0:
+        experience_score = 0.3   # fresher baseline
+    elif max_years < 1:
+        experience_score = 0.4
+    elif max_years <= 3:
+        experience_score = 0.7
+    elif max_years <= 7:
+        experience_score = 0.9
+    else:
+        experience_score = 1.0
+
+    # -------------------------------------------------
+    # 4️⃣ Section Completeness (15%)
+    # -------------------------------------------------
+    sections = [
+        "experience",
+        "education",
+        "skills",
+        "projects",
+        "certifications",
+        "summary"
+    ]
+
+    section_score = sum(1 for s in sections if s in text) / len(sections)
+
+    # -------------------------------------------------
+    # 5️⃣ Parseability & Formatting (10%)
+    # -------------------------------------------------
+    if wc < 80:
+        parse_score = 0.2
+    elif wc < 150:
+        parse_score = 0.5
+    elif wc < 300:
+        parse_score = 0.8
+    else:
+        parse_score = 1.0
+
+    # -------------------------------------------------
+    # 🚫 Penalties (max −15%)
+    # -------------------------------------------------
     penalty = 0.0
-    if wc < 150:
-        penalty += 0.05  # small penalty
-    if wc < 50:
-        penalty += 0.1   # larger penalty for extremely short / likely image PDF
 
-    # Combine with weights
-    raw_score = (
-        0.5 * keyword_score +
-        0.2 * section_score +
-        0.2 * parseability_score +
-        0.1 * experience_score
+    if max_years > 20:      # inflated experience
+        penalty += 0.1
+    if wc < 60:             # image-only / badly parsed PDF
+        penalty += 0.1
+    if len(resume_skills) > 40:  # keyword stuffing
+        penalty += 0.05
+
+    penalty = min(0.15, penalty)
+
+    # -------------------------------------------------
+    # 🎯 Final ATS Score (FLOAT 0–100)
+    # -------------------------------------------------
+    final_score = (
+        0.40 * keyword_score +
+        0.15 * placement_score +
+        0.15 * experience_score +
+        0.15 * section_score +
+        0.10 * parse_score
     )
 
-    # Convert to 0-100 and subtract penalty (scaled to 0-10 points)
-    score = raw_score * 100 - (penalty * 100)
-    score = max(0.0, min(100.0, round(score, 2)))
+    final_score = (final_score - penalty) * 100
+    final_score = max(0.0, min(100.0, round(final_score, 2)))
 
-    return score
+    return final_score
 
