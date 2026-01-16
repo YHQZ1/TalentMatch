@@ -30,7 +30,8 @@ def display_pdf(file):
         label="📄 Open Resume PDF",
         data=file.read(),
         file_name=file.name,
-        mime="application/pdf"
+        mime="application/pdf",
+        key=f"open_pdf_{file.name}"  
     )
 
 
