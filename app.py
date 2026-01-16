@@ -142,7 +142,6 @@ with st.sidebar:
     top_n = st.slider("Max Candidates to Display", 1, 20, 5)
     st.markdown("---")
     st.markdown("---")
-    st.markdown("Created with ❤️ by **Aarav**")
     st.caption("© 2026 TalentMatch Intelligence")
 
 # Main Content Area
