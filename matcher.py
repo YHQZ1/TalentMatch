@@ -273,82 +273,68 @@ def calculate_component_scores(job_desc, resumes_texts, job_desc_raw, resumes_ra
         
     return results
 
-def calculate_ats_score(resume_text, jd_text=None):
+def calculate_ats_score(resume_text, job_keywords=None):
     """
     ATS Quality Score (0–100)
-    Independent of JD Match %
-    Mimics real ATS resume scanners
+    Compatible with existing app.py call:
+    calculate_ats_score(cleaned_text, job_keywords=jd_skills)
     """
 
-    if not resume_text or len(resume_text.strip()) < 100:
+    if not resume_text or not isinstance(resume_text, str):
         return 0.0
 
     text = resume_text.lower()
-    wc = len(text.split())
+    words = text.split()
+    wc = len(words)
 
     # ---------------------------------
-    # 1️⃣ Resume Structure (25%)
+    # 1️⃣ Skill Relevance (35%)
+    # ---------------------------------
+    resume_skills = set(s.lower() for s in extract_skills(resume_text))
+
+    if job_keywords:
+        jd_skills = set(k.lower() for k in job_keywords)
+        matched = resume_skills.intersection(jd_skills)
+        skill_score = len(matched) / max(1, len(jd_skills))
+    else:
+        skill_score = min(1.0, len(resume_skills) / 8.0)
+
+    skill_score = min(1.0, skill_score)
+
+    # ---------------------------------
+    # 2️⃣ Resume Structure (20%)
     # ---------------------------------
     sections = [
         "experience", "education", "skills",
         "projects", "certifications", "summary"
     ]
-    present_sections = sum(1 for s in sections if s in text)
-    structure_score = present_sections / len(sections)
-
-    # ---------------------------------
-    # 2️⃣ Skill Presence (30%)
-    # ---------------------------------
-    resume_keywords, resume_categories = extract_skills_and_keywords(resume_text)
-
-    total_skills = sum(len(v) for v in resume_categories.values())
-
-    if total_skills == 0:
-        skill_score = 0.1
-    elif total_skills < 5:
-        skill_score = 0.4
-    elif total_skills < 12:
-        skill_score = 0.7
-    else:
-        skill_score = 1.0
+    section_score = sum(1 for s in sections if s in text) / len(sections)
 
     # ---------------------------------
     # 3️⃣ Experience Realism (20%)
     # ---------------------------------
-    experience_text = analyze_experience(resume_text)
-    years = 0
+    exp_list = extract_experience(resume_text)
+    years = 0.0
 
-    if experience_text:
-        m = re.search(r'(\d+)', experience_text)
+    for e in exp_list:
+        m = re.search(r"(\d+(?:\.\d+)?)", e)
         if m:
-            years = int(m.group(1))
+            try:
+                years = max(years, float(m.group(1)))
+            except:
+                pass
 
     if years == 0:
-        experience_score = 0.4      # fresher-friendly
+        exp_score = 0.4
     elif years <= 2:
-        experience_score = 0.6
+        exp_score = 0.6
     elif years <= 5:
-        experience_score = 0.85
+        exp_score = 0.85
     else:
-        experience_score = 1.0
+        exp_score = 1.0
 
     # ---------------------------------
-    # 4️⃣ Education Relevance (15%)
-    # ---------------------------------
-    education = analyze_education(resume_text)
-
-    if not education:
-        edu_score = 0.2
-    elif any(x in education.lower() for x in [
-        'computer science', 'information technology',
-        'software', 'engineering', 'data science'
-    ]):
-        edu_score = 1.0
-    else:
-        edu_score = 0.6
-
-    # ---------------------------------
-    # 5️⃣ Parseability & Length (10%)
+    # 4️⃣ Parseability & Length (15%)
     # ---------------------------------
     if wc < 80:
         parse_score = 0.2
@@ -360,16 +346,13 @@ def calculate_ats_score(resume_text, jd_text=None):
         parse_score = 1.0
 
     # ---------------------------------
-    # 🚫 Penalties (up to -20%)
+    # 🚫 Penalties (max −20%)
     # ---------------------------------
     penalty = 0.0
 
-    # Keyword stuffing
-    if total_skills > 45:
+    if wc < 60:                 # image / bad PDF
         penalty += 0.1
-
-    # Very short / image-based resume
-    if wc < 60:
+    if len(resume_skills) > 40: # keyword stuffing
         penalty += 0.1
 
     penalty = min(0.2, penalty)
@@ -378,13 +361,12 @@ def calculate_ats_score(resume_text, jd_text=None):
     # 🎯 Final ATS Score
     # ---------------------------------
     final_score = (
-        0.30 * skill_score +
-        0.25 * structure_score +
-        0.20 * experience_score +
-        0.15 * edu_score +
-        0.10 * parse_score
+        0.35 * skill_score +
+        0.20 * section_score +
+        0.20 * exp_score +
+        0.15 * parse_score
     )
 
     final_score = max(0.0, min(1.0, final_score - penalty))
-    return round(final_score * 100, 1)
+    return round(final_score * 100, 2)
 
