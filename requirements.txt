@@ -13,3 +13,4 @@ pandas
 plotly
 PyPDF2
 matplotlib
+streamlit-pdf-viewer
