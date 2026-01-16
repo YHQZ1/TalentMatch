@@ -1,24 +1,17 @@
 import spacy
 import streamlit as st
-import subprocess
-import sys
 
-# First, try to download the model if not available
 @st.cache_resource
-def setup_nlp():
+def load_nlp():
     try:
-        # Try loading the model first
         nlp = spacy.load("en_core_web_sm")
     except OSError:
-        # If model not found, download it
-        st.warning("📦 Downloading spaCy model (en_core_web_sm)... This may take a moment.")
-        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+        from spacy.cli import download
+        download("en_core_web_sm")
         nlp = spacy.load("en_core_web_sm")
-        st.success("✅ Model downloaded successfully!")
     return nlp
 
-# Initialize spaCy
-nlp = setup_nlp()
+nlp = load_nlp()
 
 import pandas as pd
 import plotly.express as px
