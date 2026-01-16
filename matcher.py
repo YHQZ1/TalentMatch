@@ -276,8 +276,7 @@ def calculate_component_scores(job_desc, resumes_texts, job_desc_raw, resumes_ra
 def calculate_ats_score(resume_text, job_keywords=None):
     """
     ATS Quality Score (0–100)
-    Compatible with existing app.py call:
-    calculate_ats_score(cleaned_text, job_keywords=jd_skills)
+    Compatible with existing app.py call
     """
 
     if not resume_text or not isinstance(resume_text, str):
@@ -325,7 +324,7 @@ def calculate_ats_score(resume_text, job_keywords=None):
                 pass
 
     if years == 0:
-        exp_score = 0.4
+        exp_score = 0.6        # fresher baseline
     elif years <= 2:
         exp_score = 0.6
     elif years <= 5:
@@ -346,13 +345,31 @@ def calculate_ats_score(resume_text, job_keywords=None):
         parse_score = 1.0
 
     # ---------------------------------
+    # 🔼 Project Strength Bonus
+    # ---------------------------------
+    project_keywords = [
+        "designed", "implemented", "optimized", "scalable",
+        "distributed", "latency", "throughput", "rps",
+        "ci/cd", "docker", "kubernetes", "aws"
+    ]
+
+    project_hits = sum(1 for kw in project_keywords if kw in text)
+
+    if project_hits >= 6:
+        project_bonus = 0.08
+    elif project_hits >= 3:
+        project_bonus = 0.05
+    else:
+        project_bonus = 0.0
+
+    # ---------------------------------
     # 🚫 Penalties (max −20%)
     # ---------------------------------
     penalty = 0.0
 
-    if wc < 60:                 # image / bad PDF
+    if wc < 60:
         penalty += 0.1
-    if len(resume_skills) > 40: # keyword stuffing
+    if len(resume_skills) > 40:
         penalty += 0.1
 
     penalty = min(0.2, penalty)
@@ -367,6 +384,8 @@ def calculate_ats_score(resume_text, job_keywords=None):
         0.15 * parse_score
     )
 
-    final_score = max(0.0, min(1.0, final_score - penalty))
+    final_score = final_score + project_bonus - penalty
+    final_score = max(0.0, min(1.0, final_score))
+
     return round(final_score * 100, 2)
 
