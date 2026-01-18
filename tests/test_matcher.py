@@ -1,4 +1,4 @@
-from matcher import calculate_ats_score
+from ml.matcher import calculate_ats_score
 
 
 def test_calculate_ats_score_keyword_and_experience():
